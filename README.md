@@ -9,7 +9,7 @@ Final paper for Sociology 312: Women, criminality, and punishment. This paper fo
 <!-- ALL-CONTRIBUTORS-LIST:START -->
 | Contributions | Name (alpha order) |
 | ----: | :---- |
-| [🔢](# "Content") [💻](# "Code") [🤔](# "Ideas and Planning") | [Esa Schenck](https://github.com/esaschenck) |
+| [🖋](# "Content") [💻](# "Code") [🤔](# "Ideas and Planning") [🔬](# "Research")| [Esa Schenck](https://github.com/esaschenck) |
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
@@ -30,9 +30,25 @@ What are the key terms that guide your data analysis? For instance, if your grou
 
 ## Data Sources
 
+All citations are included in the paper.
+
+### World Values Survey
+
 Data on international values is sourced from the [World Values Survey Wave 7 (2017-2022)](https://www.worldvaluessurvey.org/WVSDocumentationWV7.jsp), accessed March 26, 2023. Note that raw data is not provided for the World Values Survey, in accordance with their conditions of use.
 
-All citations are included in the paper.
+Most raw data will be read with the following:
+
+```{r}
+dataframe <- read.csv("raw-data/data.csv")
+```
+
+However, the World Values Survey raw data will be read in this way:
+
+```{r}
+dataframe <- read.csv("../data.csv")
+```
+
+The `..` points to the *parent* directory of the repository. In order to reproduce this particular code, please download the WVS Wave 7 [here](https://www.worldvaluessurvey.org/WVSDocumentationWV7.jsp) and save to your forked repository's parent directory.
 
 
 ## Repo Architecture
