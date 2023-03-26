@@ -1,0 +1,41 @@
+---
+title: "Data Cleaning"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+```
+
+# World Values Survey
+
+These data are sourced from the [World Values Survey Wave 7 (2017-2022)](https://www.worldvaluessurvey.org/WVSDocumentationWV7.jsp), accessed March 26, 2023.
+
+```{r}
+WVS_raw <- read_csv("../WVS_Wave7.csv")
+```
+
+```{r}
+head(WVS_raw)
+```
+
+First, we need to select only the nine countries analyzed by Jacobson (2017). These are those countries and their WVS Country Codes:
+
+ - Kenya (404)
+ - South Africa (710)
+ - Brazil (76)
+ - the United States (840)
+ - India (356)
+ - Thailand (764)
+ - England and Wales (Great Britain, 826)
+ - Hungary (348)
+ - the Netherlands (528)
+ - Australia (36)
+
+
+
+
+# References
+
+Haerpfer, Christian, Ronald Inglehart, Alejandro Moreno, Christian Welzel, Kseniya Kizilova, Jaime Diez-Medrano, Marta Lagos, Pippa Norris, Eduard Ponarin, and Bi Puranen. 2022. “World Values Survey Wave 7 (2017-2022) Cross-National Data-Set.” *World Values Survey*. Retrieved March 26, 2023 (https://www.worldvaluessurvey.org/WVSDocumentationWV7.jsp).
