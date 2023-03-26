@@ -13,11 +13,11 @@ library(tidyverse)
 These data are sourced from the [World Values Survey Wave 7 (2017-2022)](https://www.worldvaluessurvey.org/WVSDocumentationWV7.jsp), accessed March 26, 2023.
 
 ```{r}
-WVS_raw <- read_csv("../WVS_Wave7.csv")
+wvs_raw <- read_csv("../WVS_Wave7.csv")
 ```
 
 ```{r}
-head(WVS_raw)
+head(wvs_raw)
 ```
 
 First, we need to select only the nine countries analyzed by Jacobson (2017). These are those countries and their WVS Country Codes:
@@ -32,6 +32,43 @@ First, we need to select only the nine countries analyzed by Jacobson (2017). Th
  - Hungary (348)
  - the Netherlands (528)
  - Australia (36)
+
+Now, let's filter for `B_COUNTRY` values that match these codes. Unfortunately, I encountered an error in which it WON'T FILTER "OR" VALUES WHICH IS EVIL. So to solve that, I've made different dataframes for each country and combined them.
+
+```{r}
+# creating data frames for each country
+
+kenya <- wvs_raw %>% 
+  filter(B_COUNTRY == 404) #filter by country code
+
+safrica <- wvs_raw %>% 
+  filter(B_COUNTRY == 710)
+
+brazil <- wvs_raw %>% 
+  filter(B_COUNTRY == 76)
+
+us <- wvs_raw %>% 
+  filter(B_COUNTRY == 840)
+
+india <- wvs_raw %>% 
+  filter(B_COUNTRY == 356)
+
+thailand <- wvs_raw %>% 
+  filter(B_COUNTRY == 764)
+
+britain <- wvs_raw %>% 
+  filter(B_COUNTRY == 826)
+
+hungary <- wvs_raw %>% 
+  filter(B_COUNTRY == 348)
+
+netherlands <- wvs_raw %>% 
+  filter(B_COUNTRY == 528)
+
+australia <- wvs_raw %>% 
+  filter(B_COUNTRY == 36)
+```
+
 
 
 
