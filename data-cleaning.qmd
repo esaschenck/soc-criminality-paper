@@ -69,7 +69,21 @@ australia <- wvs_raw %>%
   filter(B_COUNTRY == 36)
 ```
 
+```{r}
+# join all of the separate country dataframes
 
+wvs_country <- kenya %>% 
+  full_join(safrica) %>% 
+  full_join(brazil) %>% 
+  full_join(us) %>% 
+  full_join(india) %>% 
+  full_join(thailand) %>% 
+  full_join(britain) %>% 
+  full_join(hungary) %>% 
+  full_join(netherlands) %>% 
+  full_join(australia)
+
+```
 
 
 
