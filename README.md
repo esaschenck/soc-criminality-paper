@@ -34,7 +34,7 @@ All citations are included in the paper.
 
 ### World Values Survey
 
-Data on international values is sourced from the [World Values Survey Wave 7 (2017-2022)](https://www.worldvaluessurvey.org/WVSDocumentationWV7.jsp), accessed March 26, 2023. Note that raw data is not provided for the World Values Survey, in accordance with their conditions of use.
+Data on international values for most countries is sourced from the [World Values Survey Wave 7 (2017-2022)](https://www.worldvaluessurvey.org/WVSDocumentationWV7.jsp), accessed March 26, 2023. Note that raw data is not provided for the World Values Survey, in accordance with their conditions of use.
 
 Most raw data will be read with the following:
 
@@ -42,13 +42,19 @@ Most raw data will be read with the following:
 dataframe <- read_csv("raw-data/data.csv")
 ```
 
-However, the World Values Survey raw data will be read in this way:
+However, the World Values Survey Wave 7 raw data will be read in this way:
 
 ```{r}
 dataframe <- read_csv("../data.csv")
 ```
 
 The `..` points to the *parent* directory of the repository. In order to reproduce this particular code, please download the WVS Wave 7 [here](https://www.worldvaluessurvey.org/WVSDocumentationWV7.jsp) and save to your forked repository's parent directory.
+
+#### Hungary, India, and South Africa
+
+The World Values Survey Wave 7 does not contain data on Hungary, India, or South Africa. Therefore their WVS results have been taken from the most recent WVS Wave to survey those countries: for Hungary, [WVS Wave 5 (2005-2009)](https://www.worldvaluessurvey.org/WVSDocumentationWV5.jsp), and for India and South Africa, [WVS Wave 6 (2010-2014)](https://www.worldvaluessurvey.org/WVSDocumentationWV6.jsp). 
+
+Note that these data are not kept under conditions of use, and as such are available in the `raw-data` folder in this repository.
 
 
 ## Repo Architecture
