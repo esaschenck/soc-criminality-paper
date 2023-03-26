@@ -39,13 +39,13 @@ Data on international values is sourced from the [World Values Survey Wave 7 (20
 Most raw data will be read with the following:
 
 ```{r}
-dataframe <- read.csv("raw-data/data.csv")
+dataframe <- read_csv("raw-data/data.csv")
 ```
 
 However, the World Values Survey raw data will be read in this way:
 
 ```{r}
-dataframe <- read.csv("../data.csv")
+dataframe <- read_csv("../data.csv")
 ```
 
 The `..` points to the *parent* directory of the repository. In order to reproduce this particular code, please download the WVS Wave 7 [here](https://www.worldvaluessurvey.org/WVSDocumentationWV7.jsp) and save to your forked repository's parent directory.
