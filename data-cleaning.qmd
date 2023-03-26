@@ -6,6 +6,7 @@ editor: visual
 
 ```{r}
 library(tidyverse)
+library(readxl)
 ```
 
 # World Values Survey
@@ -38,50 +39,58 @@ Now, let's filter for `B_COUNTRY` values that match these codes. Unfortunately, 
 ```{r}
 # creating data frames for each country
 
-kenya <- wvs_raw %>% 
+wvs_kenya <- wvs_raw %>% 
   filter(B_COUNTRY == 404) #filter by country code
 
-safrica <- wvs_raw %>% 
+wvs_safrica <- wvs_raw %>% 
   filter(B_COUNTRY == 710)
 
-brazil <- wvs_raw %>% 
+wvs_brazil <- wvs_raw %>% 
   filter(B_COUNTRY == 76)
 
-us <- wvs_raw %>% 
+wvs_us <- wvs_raw %>% 
   filter(B_COUNTRY == 840)
 
-india <- wvs_raw %>% 
+wvs_india <- wvs_raw %>% 
   filter(B_COUNTRY == 356)
 
-thailand <- wvs_raw %>% 
+wvs_thailand <- wvs_raw %>% 
   filter(B_COUNTRY == 764)
 
-britain <- wvs_raw %>% 
+wvs_britain <- wvs_raw %>% 
   filter(B_COUNTRY == 826)
 
-hungary <- wvs_raw %>% 
+wvs_hungary <- wvs_raw %>% 
   filter(B_COUNTRY == 348)
 
-netherlands <- wvs_raw %>% 
+wvs_netherlands <- wvs_raw %>% 
   filter(B_COUNTRY == 528)
 
-australia <- wvs_raw %>% 
+wvs_australia <- wvs_raw %>% 
   filter(B_COUNTRY == 36)
+```
+
+Looking at the observations from these dataframes, it appears that Hungary, India, and South Africa do not have results from the WVS Wave 7. Therefore, before joining the separate countries into one dataframe, we need to import data from earlier WVS.
+
+```{r}
+wvs_hungary <- read_xlsx("raw-data/WV5_Hungary.xlsx")
+wvs_india <- read_xlsx("raw-data/WV6_India.xlsx")
+wvs_safrica <- read_xlsx("raw-data/WV6_South_Africa.xlsx")
 ```
 
 ```{r}
 # join all of the separate country dataframes
 
-wvs_country <- kenya %>% 
-  full_join(safrica) %>% 
-  full_join(brazil) %>% 
-  full_join(us) %>% 
-  full_join(india) %>% 
-  full_join(thailand) %>% 
-  full_join(britain) %>% 
-  full_join(hungary) %>% 
-  full_join(netherlands) %>% 
-  full_join(australia)
+wvs_country <- wvs_kenya %>% 
+  full_join(wvs_safrica) %>% 
+  full_join(wvs_brazil) %>% 
+  full_join(wvs_us) %>% 
+  full_join(wvs_india) %>% 
+  full_join(wvs_thailand) %>% 
+  full_join(wvs_britain) %>% 
+  full_join(wvs_hungary) %>% 
+  full_join(wvs_netherlands) %>% 
+  full_join(wvs_australia)
 
 ```
 
@@ -90,3 +99,8 @@ wvs_country <- kenya %>%
 # References
 
 Haerpfer, Christian, Ronald Inglehart, Alejandro Moreno, Christian Welzel, Kseniya Kizilova, Jaime Diez-Medrano, Marta Lagos, Pippa Norris, Eduard Ponarin, and Bi Puranen. 2022. “World Values Survey Wave 7 (2017-2022) Cross-National Data-Set.” *World Values Survey*. Retrieved March 26, 2023 (https://www.worldvaluessurvey.org/WVSDocumentationWV7.jsp).
+
+Ingelhart, Ronald, Christian W. Haerpfer, Alejandro Moreno, Christian Welzel, Kseniya Kizilova, Jaime Diez-Medrano, Marta Lagos, Pippa Norris, Eduard Ponarin, and Bi Puranen. 2014. “World Values Survey Wave 6 (2010-2014).” *World Values Survey.* Retrieved March 26, 2023 (https://www.worldvaluessurvey.org/WVSDocumentationWV6.jsp).
+
+Ingelhart, Ronald, Christian W. Haerpfer, Alejandro Moreno, Christian Welzel, Kseniya Kizilova, Jaime Diez-Medrano, Marta Lagos, Pippa Norris, Eduard Ponarin, and Bi Puranen. 2020. “World Values Survey Wave 5 (2005-2009).” *World Values Survey.* Retrieved March 26, 2023 (https://www.worldvaluessurvey.org/WVSDocumentationWV6.jsp).
+
