@@ -100,7 +100,7 @@ wvs_country <- wvs_kenya %>%
 
 Haerpfer, Christian, Ronald Inglehart, Alejandro Moreno, Christian Welzel, Kseniya Kizilova, Jaime Diez-Medrano, Marta Lagos, Pippa Norris, Eduard Ponarin, and Bi Puranen. 2022. “World Values Survey Wave 7 (2017-2022) Cross-National Data-Set.” *World Values Survey*. Retrieved March 26, 2023 (https://www.worldvaluessurvey.org/WVSDocumentationWV7.jsp).
 
-Ingelhart, Ronald, Christian W. Haerpfer, Alejandro Moreno, Christian Welzel, Kseniya Kizilova, Jaime Diez-Medrano, Marta Lagos, Pippa Norris, Eduard Ponarin, and Bi Puranen. 2014. “World Values Survey Wave 6 (2010-2014).” *World Values Survey.* Retrieved March 26, 2023 (https://www.worldvaluessurvey.org/WVSDocumentationWV6.jsp).
+Ingelhart, Ronald, Christian W. Haerpfer, Alejandro Moreno, Christian Welzel, Kseniya Kizilova, Jaime Diez-Medrano, Marta Lagos, Pippa Norris, Eduard Ponarin, and Bi Puranen. 2014. “World Values Survey Wave 6 (2010-2014).” *World Values Survey.* Retrieved March 26, 2023 (https://www.worldvaluessurvey.org/WVSDocumentationWV5.jsp).
 
-Ingelhart, Ronald, Christian W. Haerpfer, Alejandro Moreno, Christian Welzel, Kseniya Kizilova, Jaime Diez-Medrano, Marta Lagos, Pippa Norris, Eduard Ponarin, and Bi Puranen. 2020. “World Values Survey Wave 5 (2005-2009).” *World Values Survey.* Retrieved March 26, 2023 (https://www.worldvaluessurvey.org/WVSDocumentationWV6.jsp).
+Ingelhart, Ronald, Christian W. Haerpfer, Alejandro Moreno, Christian Welzel, Kseniya Kizilova, Jaime Diez-Medrano, Marta Lagos, Pippa Norris, Eduard Ponarin, and Bi Puranen. 2014. “World Values Survey Wave 5 (2005-2009).” *World Values Survey.* Retrieved March 26, 2023 (https://www.worldvaluessurvey.org/WVSDocumentationWV6.jsp).
 
