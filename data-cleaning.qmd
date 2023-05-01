@@ -70,28 +70,158 @@ wvs_australia <- wvs_raw %>%
   filter(B_COUNTRY == 36)
 ```
 
-Looking at the observations from these dataframes, it appears that Hungary, India, and South Africa do not have results from the WVS Wave 7. Therefore, before joining the separate countries into one dataframe, we need to import data from earlier WVS.
+Looking at the observations from these dataframes, it appears that Hungary, India, and South Africa do not have results from the WVS Wave 7. 
 
+Here is the code for reading in the other countires (not to be executed rn)
 ```{r}
 wvs_hungary <- read_xlsx("raw-data/WV5_Hungary.xlsx")
 wvs_india <- read_xlsx("raw-data/WV6_India.xlsx")
 wvs_safrica <- read_xlsx("raw-data/WV6_South_Africa.xlsx")
 ```
 
+
+Before things get complicated, let's save these files so that next time we don't have to download and read the entire wave 7.
+
 ```{r}
-# join all of the separate country dataframes
+# join the separate country dataframes from wave 7
 
 wvs_country <- wvs_kenya %>% 
-  full_join(wvs_safrica) %>% 
   full_join(wvs_brazil) %>% 
   full_join(wvs_us) %>% 
-  full_join(wvs_india) %>% 
   full_join(wvs_thailand) %>% 
   full_join(wvs_britain) %>% 
-  full_join(wvs_hungary) %>% 
   full_join(wvs_netherlands) %>% 
   full_join(wvs_australia)
 
+write.csv(wvs_country, "cleaned-data/wave_7_countries.csv")
+```
+
+# Averages
+
+First, I want to remove variables that I definitely don't want to use
+```{r}
+colnames(wvs_country)
+
+wvs_country_simplified <- wvs_country %>% 
+  select(-version,
+         -doi,
+         -A_WAVE,
+         -A_YEAR,
+         -A_STUDY,
+         -C_COW_NUM,
+         -C_COW_ALPHA,
+         -D_INTERVIEW,
+         -S007,
+         -J_INTDATE,
+         -FW_END,
+         -FW_START,
+         -K_TIME_START,
+         -K_TIME_END,
+         -K_DURATION,
+         -Q_MODE,
+         -N_REGION_ISO,,
+         -N_REGION_WVS,
+         -N_REGION_NUTS2,
+         -reg_nuts1,
+         -N_TOWN,
+         -G_TOWNSIZE,
+         -G_TOWNSIZE2,
+         -H_SETTLEMENT,
+         -H_URBRURAL,
+         -L_INTERVIEWER_NUMBER,
+         -I_PSU,
+         -O1_LONGITUDE,
+         -O2_LATITUDE,
+         -S_INTLANGUAGE,
+         -LNGE_ISO,
+         -E_RESPINT,
+         -F_INTPRIVACY,
+         -E1_LITERACY,
+         -W_WEIGHT,
+         -S018,
+         -S025,
+         -Q33, -Q33_3,
+         -Q34, -Q34_3,
+         -Q35, -Q35_3,
+         -Q82, -Q82_AFRICANUNION, -Q82_APEC, -Q82_ARABLEAGUE, -Q82_ASEAN, -Q82_CIS, -Q82_CUSMA, -Q82_ECO, -Q82_EU, -Q82_GULFCOOP, -Q82_ISLCOOP, -Q82_MERCOSUR, -Q82_NAFTA, -Q82_OAS, -Q82_SAARC, -Q82_SCO, -Q82_TLC, -Q82_UNDP, 
+         -Q223, -Q223_ABREV, -Q223_LOCAL,
+         -X003R, -X003R2,
+         -Q264, -V002, -Q265, -V001,
+         -Q266,- X002_02B, -Q267, -V002A_01, -Q268, -V001A_01)
+
+wvs_country_simplified <- wvs_country_simplified[1:342]
+
+```
+
+
+Now, let's try to find averages for each question for each country
+
+```{r}
+wvs_country_averages <- wvs_country_simplified %>% 
+  group_by(B_COUNTRY, B_COUNTRY_ALPHA) %>% 
+  summarise(across(everything(), mean))
+```
+
+# Combining with prison data
+
+The countries are 
+
+```{r}
+as.list(wvs_country_averages[2])
+
+country_prisons <- data.frame(B_COUNTRY_ALPHA = c("AUS", "BRA", "KEN", "NLD", "THA", "GBR", "USA"),
+                              prison_rate = c(158, 389, 107, 66, 377, 140, 531),
+                              prison_total = c(41155, 835643, 58887, 11623, 262319, 84372, 1767200))
+
+countries_for_analysis <- country_prisons %>% full_join(
+  wvs_country_averages,
+  by="B_COUNTRY_ALPHA"
+)
+
+```
+
+
+# Creating one simple linear regression
+
+Now that we have a data frame like this, we can work on creating simple linear regressions.
+
+First of all, as a trial run I'm going to compare Q17 (importance of raising children to be obedient) to the prison rate.
+
+```{r}
+countries_for_analysis %>% 
+  select(B_COUNTRY_ALPHA, Q17, prison_rate) %>% 
+  ggplot(aes(x = Q17, y = prison_rate)) +
+  geom_point()
+```
+
+```{r}
+#summarize the linear model
+summary(lm(prison_rate~Q17, data=countries_for_analysis))
+
+#extract the p value
+summary(lm(prison_rate~Q17, data=countries_for_analysis))$coefficients[2,4]
+```
+There is a non-statistically significant positive relationship, with a p-value of 0.607.
+
+# create a function
+
+```{r}
+extract_pvalue <- function(x_var){
+  summary(lm(prison_rate~eval(parse(x_var)), data=countries_for_analysis))$coefficients[2,4]
+}
+```
+
+## testing function
+
+```{r}
+extract_pvalue("Q17")
+```
+
+
+# Pivoting
+
+```{r}
+wvs_country_averages %>% pivot_longer(-c('B_COUNTRY', 'B_COUNTRY_ALPHA'), names_to="question", values_to = "country_average")
 ```
 
 
@@ -103,4 +233,3 @@ Haerpfer, Christian, Ronald Inglehart, Alejandro Moreno, Christian Welzel, Kseni
 Ingelhart, Ronald, Christian W. Haerpfer, Alejandro Moreno, Christian Welzel, Kseniya Kizilova, Jaime Diez-Medrano, Marta Lagos, Pippa Norris, Eduard Ponarin, and Bi Puranen. 2014. “World Values Survey Wave 6 (2010-2014).” *World Values Survey.* Retrieved March 26, 2023 (https://www.worldvaluessurvey.org/WVSDocumentationWV5.jsp).
 
 Ingelhart, Ronald, Christian W. Haerpfer, Alejandro Moreno, Christian Welzel, Kseniya Kizilova, Jaime Diez-Medrano, Marta Lagos, Pippa Norris, Eduard Ponarin, and Bi Puranen. 2014. “World Values Survey Wave 5 (2005-2009).” *World Values Survey.* Retrieved March 26, 2023 (https://www.worldvaluessurvey.org/WVSDocumentationWV6.jsp).
-
