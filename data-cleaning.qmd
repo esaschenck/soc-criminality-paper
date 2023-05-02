@@ -5,8 +5,21 @@ editor: visual
 ---
 
 ```{r}
+#packages
+
 library(tidyverse)
-library(readxl)
+#library(readxl) #only for reading the other countries data
+```
+
+```{r}
+#cleaned data
+
+#wvs_country <- read_csv("cleaned-data/wave_7_countries.csv")
+#wvs_country_simplified <- read_csv("cleaned-data/wvs_country_simplified.csv")
+#wvs_country_averages <- read_csv("cleaned-data/wvs_country_averages.csv")
+#country_prisons <- read_csv("cleaned-data/country_prisons.csv")
+
+countries_for_analysis <- read_csv("cleaned-data/countries_for_analysis.csv")
 ```
 
 # World Values Survey
@@ -151,6 +164,7 @@ wvs_country_simplified <- wvs_country %>%
 
 wvs_country_simplified <- wvs_country_simplified[1:342]
 
+write_csv(wvs_country_simplified, "cleaned-data/wvs_country_simplified.csv")
 ```
 
 
@@ -160,6 +174,8 @@ Now, let's try to find averages for each question for each country
 wvs_country_averages <- wvs_country_simplified %>% 
   group_by(B_COUNTRY, B_COUNTRY_ALPHA) %>% 
   summarise(across(everything(), mean))
+
+write_csv(wvs_country_averages, "cleaned-data/wvs_country_averages.csv")
 ```
 
 # Combining with prison data
@@ -173,11 +189,14 @@ country_prisons <- data.frame(B_COUNTRY_ALPHA = c("AUS", "BRA", "KEN", "NLD", "T
                               prison_rate = c(158, 389, 107, 66, 377, 140, 531),
                               prison_total = c(41155, 835643, 58887, 11623, 262319, 84372, 1767200))
 
+write_csv(country_prisons, "cleaned-data/country_prisons.csv")
+
 countries_for_analysis <- country_prisons %>% full_join(
   wvs_country_averages,
   by="B_COUNTRY_ALPHA"
 )
 
+write.csv(countries_for_analysis, "cleaned-data/countries_for_analysis.csv")
 ```
 
 
@@ -206,22 +225,292 @@ There is a non-statistically significant positive relationship, with a p-value o
 # create a function
 
 ```{r}
+which(colnames(countries_for_analysis)=="Q17")
+countries_for_analysis[22]
+summary(lm(as.formula("prison_rate~Q17"), data=countries_for_analysis))
+
+x_var <- "Q17"
+summary(lm((paste("prison_rate ~", as.character(x_var))), data=countries_for_analysis))
+
+lm_summary <- function(x_var){
+  summary(lm((paste("prison_rate ~", as.character(x_var))), data=countries_for_analysis))
+}
+
+lm_summary("Q17")
+
+
+```
+
+```{r}
 extract_pvalue <- function(x_var){
-  summary(lm(prison_rate~eval(parse(x_var)), data=countries_for_analysis))$coefficients[2,4]
+  summary(lm((paste("prison_rate ~", as.character(x_var))), data=countries_for_analysis))$coefficients[2,4]
 }
 ```
 
-## testing function
 
+testing function
 ```{r}
 extract_pvalue("Q17")
 ```
 
-
-# Pivoting
+## using the function
 
 ```{r}
-wvs_country_averages %>% pivot_longer(-c('B_COUNTRY', 'B_COUNTRY_ALPHA'), names_to="question", values_to = "country_average")
+#make list of column names as input for function
+list_colnames <- colnames(countries_for_analysis)
+inputs <- list_colnames[6:344]
+
+#use map for function
+extract_pvalue(inputs[1])
+inputs <- as.list(inputs)
+
+#run the function to create a dataframe, then pivot the data frame longer
+pvalues <- inputs %>% 
+  map_dfc(extract_pvalue) %>% 
+  pivot_longer(cols = everything(), names_to = "question", values_to = "p_value") %>% 
+  filter(p_value <= 0.1) %>% 
+  arrange(p_value)
+```
+
+Now let's extract the meaningful p_values (<= 0.1) and find their corresponding questions
+```{r}
+
+assign_question <- function(question_index){ # e.g. take "...7" as input
+  # gsub("[^[:alnum:] ]", "", "...7") will remove any special strings (eg "...") from "...7" and replace them with "" 
+  #then just say as.numeric
+  # as.character(inputs[1]) finds the question associated with the first index of the inputs dataframe
+  as.character(inputs[as.numeric(gsub("[^[:alnum:] ]", "", question_index))])
+}
+
+pvalues %>% 
+  mutate(question_string = assign_question(question)) %>% 
+  select(question_string, p_value)
+
+pvalues %>% 
+  mutate(question_string = assign_question(question)) %>% 
+  select(question_string, p_value) %>% 
+  filter(question_string != "Q234A")
+
+#note: exvluse 243/Q234A because bad data???
+```
+
+
+Now let's find lm summaries of these most correlated questions
+
+```{r}
+lm_summary("Q7")
+```
+
+## Question 7 graph
+```{r}
+countries_for_analysis %>% 
+  select(B_COUNTRY_ALPHA, prison_rate, Q7) %>% 
+ggplot(aes(x = Q7, y = prison_rate, label = B_COUNTRY_ALPHA)) +
+  geom_point() +
+  geom_smooth(method='lm') +
+  geom_label() +
+  labs(y = "Incarceration Rate (per 100,000)",
+       title = "Good Manners vs. Incarceration Rate", 
+       subtitle = "Is it important for children to learn good manners at home?",
+       caption = "P-Value of 0.002") +
+  scale_x_reverse("Importance of Manners", limits = c(2, 1), breaks = c(1, 2), label = c("Important", "Not Important"))
+```
+
+## Question 46 graph
+```{r}
+countries_for_analysis %>% 
+  select(B_COUNTRY_ALPHA, prison_rate, Q46) %>% 
+ggplot(aes(x = Q46, y = prison_rate, label = B_COUNTRY_ALPHA)) +
+  geom_point() +
+  geom_smooth(method='lm') +
+  geom_label() +
+  labs(y = "Incarceration Rate (per 100,000)",
+       title = "Happiness vs. Incarceration Rate", 
+       subtitle = "Taking all things together, how happy would you say you are?",
+       caption = "P-Value of 0.015") +
+  scale_x_reverse("Happiness", limits = c(4, 1), breaks = c(1, 2, 3, 4), label = c("Very happy", "Rather happy", "Not very happy","Not at all happy"))
+
+countries_for_analysis %>% 
+  select(B_COUNTRY_ALPHA, prison_rate, Q46) %>% 
+ggplot(aes(x = Q46, y = prison_rate, label = B_COUNTRY_ALPHA)) +
+  geom_point() +
+  geom_smooth(method='lm') +
+  geom_label() +
+  labs(y = "Incarceration Rate (per 100,000)",
+       title = "Happiness vs. Incarceration Rate", 
+       subtitle = "Taking all things together, how happy would you say you are?",
+       caption = "P-Value of 0.015") +
+  scale_x_reverse("Happiness", limits = c(2, 1), breaks = c(1, 2, 3, 4), label = c("Very happy", "Rather happy", "Not very happy","Not at all happy"))
+```
+
+## Question 195 Graph
+0.048
+
+```{r}
+countries_for_analysis %>% 
+  select(B_COUNTRY_ALPHA, prison_rate, Q195) %>% 
+ggplot(aes(x = Q195, y = prison_rate, label = B_COUNTRY_ALPHA)) +
+  geom_point() +
+  geom_smooth(method='lm') +
+  geom_label() +
+  labs(y = "Incarceration Rate (per 100,000)",
+       title = "Death Penalty Justification vs. Incarceration Rate", 
+       subtitle = "How often do you think the death penalty can be justified?",
+       caption = "P-Value of 0.048") +
+  scale_x_reverse("Death Penalty Justification", limits = c(10, 1), breaks = c(1, 10), label = c("Never justifiable", "Always justifiable"))
+```
+
+
+# Q234A	IGNORE -- NOT STATISTICALLY SIGNIFICANT
+
+
+p value 0.055652007
+
+```{r}
+q234A_data <- countries_for_analysis %>% filter(B_COUNTRY_ALPHA != "THA", B_COUNTRY_ALPHA != "USA")
+summary(lm(as.formula("prison_rate~Q234A"), data=q234A_data))
+```
+
+
+```{r}
+countries_for_analysis %>% 
+  select(B_COUNTRY_ALPHA, prison_rate, Q234A) %>% 
+ggplot(aes(x = Q234A, y = prison_rate, label = B_COUNTRY_ALPHA)) +
+  geom_point() +
+  geom_smooth(method='lm') +
+  geom_label() +
+  labs(y = "Incarceration Rate (per 100,000)",
+       title = "Death Penalty Justification vs. Incarceration Rate", 
+       subtitle = "How often do you think the death penalty can be justified?",
+       caption = "P-Value of 0.056") +
+  scale_x_reverse("Death Penalty Justification", limits = c(10, 1), breaks = c(1, 10), label = c("Never justifiable", "Always justifiable"))
+```
+IGNORE -- NOT STATISTICALLY SIGNIFICANT
+
+
+## Question 58 graph
+```{r}
+countries_for_analysis %>% 
+  select(B_COUNTRY_ALPHA, prison_rate, Q58) %>% 
+ggplot(aes(x = Q58, y = prison_rate, label = B_COUNTRY_ALPHA)) +
+  geom_point() +
+  geom_smooth(method='lm') +
+  geom_label() +
+  labs(y = "Incarceration Rate (per 100,000)",
+       title = "Family Trust vs. Incarceration Rate", 
+       subtitle = "How much do you trust people from your family?",
+       caption = "P-Value of 0.059") +
+  scale_x_reverse("Trust in Your Family", limits = c(4, 1), breaks = c(1, 2, 3, 4), label = c("Trust completely", "Trust somewhat", "Do not trust very much", "Do not trust at all"))
+
+countries_for_analysis %>% 
+  select(B_COUNTRY_ALPHA, prison_rate, Q58) %>% 
+ggplot(aes(x = Q58, y = prison_rate, label = B_COUNTRY_ALPHA)) +
+  geom_point() +
+  geom_smooth(method='lm') +
+  geom_label() +
+  labs(y = "Incarceration Rate (per 100,000)",
+       title = "Family Trust vs. Incarceration Rate", 
+       subtitle = "How much do you trust people from your family?",
+       caption = "P-Value of 0.059") +
+  scale_x_reverse("Trust in Your Family", breaks = c(1, 2, 3, 4), label = c("Trust completely", "Trust somewhat", "Do not trust very much", "Do not trust at all"))
+```
+
+
+# Q203	
+
+p value 0.060173361
+
+```{r}
+countries_for_analysis %>% 
+  select(B_COUNTRY_ALPHA, prison_rate, Q203) %>% 
+ggplot(aes(x = Q203, y = prison_rate, label = B_COUNTRY_ALPHA)) +
+  geom_point() +
+  geom_smooth(method='lm') +
+  geom_label() +
+  labs(y = "Incarceration Rate (per 100,000)",
+       title = "Radio News vs. Incarceration Rate", 
+       subtitle = "How often do you obtain information through radio news?",
+       caption = "P-Value of 0.060") +
+  scale_x_reverse("Radio News Usage", limits = c(5, 1), breaks = c(1, 2, 3, 4, 5), label = c("Daily", "Weekly", "Monthly", "Less than monthly", "Never"))
+```
+
+
+
+# Q142	
+
+p value 0.061714572			
+
+```{r}
+countries_for_analysis %>% 
+  select(B_COUNTRY_ALPHA, prison_rate, Q142) %>% 
+ggplot(aes(x = Q142, y = prison_rate, label = B_COUNTRY_ALPHA)) +
+  geom_point() +
+  geom_smooth(method='lm') +
+  geom_label() +
+  labs(y = "Incarceration Rate (per 100,000)",
+       title = "Perceived Job Security vs. Incarceration Rate", 
+       subtitle = "To what degree are you worried about losing your job or not finding a job?",
+       caption = "P-Value of 0.062") +
+  scale_x_reverse("Job Security", limits = c(4, 1), breaks = c(1, 2, 3, 4), label = c("Very much", "A good deal", "Not much", "Not at all"))
+```
+
+#Q2	
+
+p value 0.088545211	
+
+```{r}
+countries_for_analysis %>% 
+  select(B_COUNTRY_ALPHA, prison_rate, Q2) %>% 
+ggplot(aes(x = Q2, y = prison_rate, label = B_COUNTRY_ALPHA)) +
+  geom_point() +
+  geom_smooth(method='lm') +
+  geom_label() +
+  labs(y = "Incarceration Rate (per 100,000)",
+       title = "Importance of Friends vs. Incarceration Rate", 
+       subtitle = "How important are friends in your life?",
+       caption = "P-Value of 0.089") +
+  scale_x_reverse("Importance of Friends", limits = c(4, 1), breaks = c(1, 2, 3, 4), label = c("Very important", "Rather important", "Not very important", "Not at all important"))
+```
+
+
+## Function to make graph
+```{r}
+make_graph <- function(question_num, x_label, title_phrase, subtitle, p_value, limits, breaks, break_labels, y_label = "Incarceration Rate (per 100,000)"){
+  countries_for_analysis %>%
+  select(B_COUNTRY_ALPHA, prison_rate, question_num) %>% 
+ggplot(aes(x = question_num, y = prison_rate, label = B_COUNTRY_ALPHA)) +
+  geom_point() +
+  geom_smooth(method='lm') +
+  geom_label() +
+  labs(y = y_label,
+       title = paste(title_phrase, "vs. Incarceration Rate"), 
+       subtitle = subtitle,
+       caption = paste("P-Value of", as.character(p_value))) +
+  scale_x_reverse(y_label, limits = limits, breaks = breaks, label = break_labels)
+}
+
+make_graph(question_num="Q46", x_label = "Q46", title_phrase = "Happiness", subtitle = "Taking all things together, how happy would you say you are?", p_value = 0.015, limits = c(1,4), breaks = c(1, 2, 3, 4), break_labels = c("Very happy", "Rather happy", "Not very happy", "Not at all happy"))
+
+
+make_graph <- function(question_num, x_label, limits, breaks, break_labels, y_label = "Incarceration Rate (per 100,000)"){
+  countries_for_analysis %>% 
+  select(B_COUNTRY_ALPHA, prison_rate, question_num) %>% 
+ggplot(aes(x = question_num, y = prison_rate, label = B_COUNTRY_ALPHA)) +
+  geom_point() +
+  geom_smooth(method='lm') +
+  geom_label() +
+  labs(y = y_label) +
+  scale_x_reverse(y_label, limits = eval(limits), breaks = eval(breaks), label = eval(break_labels))
+}
+
+make_graph(question_num="Q46", x_label = "Q46", limits = c(1,4), breaks = c(1, 2, 3, 4), break_labels = c("Very happy", "Rather happy", "Not very happy", "Not at all happy"))
+
+
+
+
+
+
+
 ```
 
 
