@@ -1,0 +1,210 @@
+---
+title: "Data Cleaning"
+format: html
+editor: visual
+---
+
+```{r}
+#packages
+
+library(tidyverse)
+#library(readxl) #only for reading the other countries data (don't have to do now that the data is saved)
+library(rlang) #for the function that creates graphs
+```
+
+```{r}
+#reading in raw data 
+wvs_raw <- read_csv("../WVS_Wave7.csv")
+wpb_rate <- read_csv("raw-data/wpb_rate.csv")
+wvs_codes <- read_xlsx("raw-data/wvs_codes.xlsx", col_names = c("B_COUNTRY", "Title"))
+```
+
+```{r}
+# reading in cleaned data
+all_countries_for_analysis <- read_csv("cleaned-data/all_countries_for_analysis.csv")
+```
+
+
+# Averages
+
+First, I want to remove variables that I definitely don't want to use
+```{r}
+wvs_simple <- wvs_raw %>% 
+  select(-version,
+         -doi,
+         -A_WAVE,
+         -A_YEAR,
+         -A_STUDY,
+         -C_COW_NUM,
+         -C_COW_ALPHA,
+         -D_INTERVIEW,
+         -S007,
+         -J_INTDATE,
+         -FW_END,
+         -FW_START,
+         -K_TIME_START,
+         -K_TIME_END,
+         -K_DURATION,
+         -Q_MODE,
+         -N_REGION_ISO,
+         -N_REGION_WVS,
+         -N_REGION_NUTS2,
+         -reg_nuts1,
+         -N_TOWN,
+         -G_TOWNSIZE,
+         -G_TOWNSIZE2,
+         -H_SETTLEMENT,
+         -H_URBRURAL,
+         -L_INTERVIEWER_NUMBER,
+         -I_PSU,
+         -O1_LONGITUDE,
+         -O2_LATITUDE,
+         -S_INTLANGUAGE,
+         -LNGE_ISO,
+         -E_RESPINT,
+         -F_INTPRIVACY,
+         -E1_LITERACY,
+         -W_WEIGHT,
+         -S018,
+         -S025,
+         -Q33, -Q33_3,
+         -Q34, -Q34_3,
+         -Q35, -Q35_3,
+         -Q82, -Q82_AFRICANUNION, -Q82_APEC, -Q82_ARABLEAGUE, -Q82_ASEAN, -Q82_CIS, -Q82_CUSMA, -Q82_ECO, -Q82_EU, -Q82_GULFCOOP, -Q82_ISLCOOP, -Q82_MERCOSUR, -Q82_NAFTA, -Q82_OAS, -Q82_SAARC, -Q82_SCO, -Q82_TLC, -Q82_UNDP, 
+         -Q223, -Q223_ABREV, -Q223_LOCAL,
+         -X003R, -X003R2,
+         -Q264, -V002, -Q265, -V001,
+         -Q266,- X002_02B, -Q267, -V002A_01, -Q268, -V001A_01)
+
+wvs_simple <- wvs_simple[1:342]
+
+write_csv(wvs_simple, "cleaned-data/wvs_simple.csv")
+```
+
+
+Now, let's try to find averages for each question for each country
+
+```{r}
+wvs_averages <- wvs_simple %>% 
+  group_by(B_COUNTRY, B_COUNTRY_ALPHA) %>% 
+  summarise(across(everything(), mean))
+
+write_csv(wvs_averages, "cleaned-data/wvs_averages.csv")
+```
+
+# Combining with prison data
+
+The countries are 
+
+```{r}
+
+all_countries_for_analysis <- wvs_codes %>% inner_join(wpb_rate,
+                            by="Title") %>% inner_join(
+                              wvs_averages, 
+                              by="B_COUNTRY")
+head(all_countries_for_analysis)
+
+
+write_csv(all_countries_for_analysis, "cleaned-data/all_countries_for_analysis.csv")
+```
+
+
+
+# create a function
+
+```{r}
+extract_pvalue <- function(x_var){
+  summary(lm((paste("prison_rate ~", as.character(x_var))), data=all_countries_for_analysis))$coefficients[2,4]
+}
+```
+
+## using the function
+
+```{r}
+#make list of column names as input for function
+list_colnames <- colnames(all_countries_for_analysis)
+inputs <- list_colnames[5:344]
+
+#use map for function
+extract_pvalue(inputs[7])
+inputs <- as.list(inputs)
+
+#run the function to create a dataframe, then pivot the data frame longer
+pvalues <- inputs %>% 
+  map_dfc(extract_pvalue) %>% 
+  pivot_longer(cols = everything(), names_to = "question", values_to = "p_value") %>% 
+  filter(p_value <= 0.1) %>% 
+  arrange(p_value)
+```
+
+Now let's extract the meaningful p_values (<= 0.1) and find their corresponding questions
+```{r}
+
+assign_question <- function(question_index){ # e.g. take "...7" as input
+  # gsub("[^[:alnum:] ]", "", "...7") will remove any special strings (eg "...") from "...7" and replace them with "" 
+  #then just say as.numeric
+  # as.character(inputs[1]) finds the question associated with the first index of the inputs dataframe
+  as.character(inputs[as.numeric(gsub("[^[:alnum:] ]", "", question_index))])
+}
+
+pvalues <- pvalues %>% 
+  mutate(question_string = assign_question(question)) %>% 
+  select(question_string, p_value)
+
+pvalues <- pvalues %>% 
+  filter(question_string != "Q275A",
+         question_string != "Q277A",
+         question_string != "Q278A",
+         question_string != "Q276R",
+         question_string != "Q275R",
+         question_string != "Q98R",
+         question_string != "Q273",
+         question_string != "Q280",
+         question_string != "Q281",
+         question_string != "Q286",
+         question_string != "Q56")
+
+pvalues
+
+pvalues %>% 
+  filter(nchar(question_string)==4) %>% 
+  arrange(question_string)
+```
+
+```{r}
+pvalues %>% filter(
+  question_string == "Q2"
+)
+```
+
+
+
+## Function to make graph
+```{r}
+make_graph <- function(question_num, x_label, title_phrase, subtitle, p_value, limits, breaks, break_labels){
+  all_countries_for_analysis %>%
+ggplot(aes(x = {{question_num}}, y = prison_rate)) +
+  geom_point() +
+  geom_smooth(method='lm') +
+  labs(y = "Incarceration Rate (per 100,000)",
+       title = paste(title_phrase, "vs. Incarceration Rate"), 
+       subtitle = subtitle,
+       caption = paste("P-Value of", as.character(p_value))) +
+  scale_x_reverse(x_label, limits = limits, breaks = breaks, label = break_labels)
+}
+
+
+
+make_graph(question_num=Q46, x_label = "Q46", title_phrase = "Happiness", subtitle = "Taking all things together, how happy would you say you are?", p_value = 0.015, limits = c(4,1), breaks = c(1, 2, 3, 4), break_labels = c("Very happy", "Rather happy", "Not very happy", "Not at all happy"))
+```
+
+```{r}
+lm_summary <- function(x_var){
+  summary(lm((paste("prison_rate ~", as.character(x_var))), data=all_countries_for_analysis))
+}
+```
+
+```{r}
+lm_summary("Q131")
+```
+

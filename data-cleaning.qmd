@@ -19,7 +19,7 @@ library(tidyverse)
 #wvs_country_averages <- read_csv("cleaned-data/wvs_country_averages.csv")
 #country_prisons <- read_csv("cleaned-data/country_prisons.csv")
 
-countries_for_analysis <- read_csv("cleaned-data/countries_for_analysis.csv")
+#countries_for_analysis <- read_csv("cleaned-data/countries_for_analysis.csv")
 ```
 
 # World Values Survey
@@ -36,16 +36,16 @@ head(wvs_raw)
 
 First, we need to select only the nine countries analyzed by Jacobson (2017). These are those countries and their WVS Country Codes:
 
- - Kenya (404)
- - South Africa (710)
- - Brazil (76)
- - the United States (840)
- - India (356)
- - Thailand (764)
- - England and Wales (Great Britain, 826)
- - Hungary (348)
- - the Netherlands (528)
- - Australia (36)
+-   Kenya (404)
+-   South Africa (710)
+-   Brazil (76)
+-   the United States (840)
+-   India (356)
+-   Thailand (764)
+-   England and Wales (Great Britain, 826)
+-   Hungary (348)
+-   the Netherlands (528)
+-   Australia (36)
 
 Now, let's filter for `B_COUNTRY` values that match these codes. Unfortunately, I encountered an error in which it WON'T FILTER "OR" VALUES WHICH IS EVIL. So to solve that, I've made different dataframes for each country and combined them.
 
@@ -83,15 +83,15 @@ wvs_australia <- wvs_raw %>%
   filter(B_COUNTRY == 36)
 ```
 
-Looking at the observations from these dataframes, it appears that Hungary, India, and South Africa do not have results from the WVS Wave 7. 
+Looking at the observations from these dataframes, it appears that Hungary, India, and South Africa do not have results from the WVS Wave 7.
 
 Here is the code for reading in the other countires (not to be executed rn)
+
 ```{r}
 wvs_hungary <- read_xlsx("raw-data/WV5_Hungary.xlsx")
 wvs_india <- read_xlsx("raw-data/WV6_India.xlsx")
 wvs_safrica <- read_xlsx("raw-data/WV6_South_Africa.xlsx")
 ```
-
 
 Before things get complicated, let's save these files so that next time we don't have to download and read the entire wave 7.
 
@@ -112,6 +112,7 @@ write.csv(wvs_country, "cleaned-data/wave_7_countries.csv")
 # Averages
 
 First, I want to remove variables that I definitely don't want to use
+
 ```{r}
 colnames(wvs_country)
 
@@ -132,7 +133,7 @@ wvs_country_simplified <- wvs_country %>%
          -K_TIME_END,
          -K_DURATION,
          -Q_MODE,
-         -N_REGION_ISO,,
+         -N_REGION_ISO,
          -N_REGION_WVS,
          -N_REGION_NUTS2,
          -reg_nuts1,
@@ -167,7 +168,6 @@ wvs_country_simplified <- wvs_country_simplified[1:342]
 write_csv(wvs_country_simplified, "cleaned-data/wvs_country_simplified.csv")
 ```
 
-
 Now, let's try to find averages for each question for each country
 
 ```{r}
@@ -180,7 +180,7 @@ write_csv(wvs_country_averages, "cleaned-data/wvs_country_averages.csv")
 
 # Combining with prison data
 
-The countries are 
+The countries are
 
 ```{r}
 as.list(wvs_country_averages[2])
@@ -198,7 +198,6 @@ countries_for_analysis <- country_prisons %>% full_join(
 
 write.csv(countries_for_analysis, "cleaned-data/countries_for_analysis.csv")
 ```
-
 
 # Creating one simple linear regression
 
@@ -220,6 +219,7 @@ summary(lm(prison_rate~Q17, data=countries_for_analysis))
 #extract the p value
 summary(lm(prison_rate~Q17, data=countries_for_analysis))$coefficients[2,4]
 ```
+
 There is a non-statistically significant positive relationship, with a p-value of 0.607.
 
 # create a function
@@ -247,8 +247,8 @@ extract_pvalue <- function(x_var){
 }
 ```
 
-
 testing function
+
 ```{r}
 extract_pvalue("Q17")
 ```
@@ -259,9 +259,6 @@ extract_pvalue("Q17")
 #make list of column names as input for function
 list_colnames <- colnames(countries_for_analysis)
 inputs <- list_colnames[6:344]
-
-#use map for function
-extract_pvalue(inputs[1])
 inputs <- as.list(inputs)
 
 #run the function to create a dataframe, then pivot the data frame longer
@@ -272,7 +269,8 @@ pvalues <- inputs %>%
   arrange(p_value)
 ```
 
-Now let's extract the meaningful p_values (<= 0.1) and find their corresponding questions
+Now let's extract the meaningful p_values (\<= 0.1) and find their corresponding questions
+
 ```{r}
 
 assign_question <- function(question_index){ # e.g. take "...7" as input
@@ -294,7 +292,6 @@ pvalues %>%
 #note: exvluse 243/Q234A because bad data???
 ```
 
-
 Now let's find lm summaries of these most correlated questions
 
 ```{r}
@@ -302,6 +299,7 @@ lm_summary("Q7")
 ```
 
 ## Question 7 graph
+
 ```{r}
 countries_for_analysis %>% 
   select(B_COUNTRY_ALPHA, prison_rate, Q7) %>% 
@@ -317,6 +315,7 @@ ggplot(aes(x = Q7, y = prison_rate, label = B_COUNTRY_ALPHA)) +
 ```
 
 ## Question 46 graph
+
 ```{r}
 countries_for_analysis %>% 
   select(B_COUNTRY_ALPHA, prison_rate, Q46) %>% 
@@ -344,6 +343,7 @@ ggplot(aes(x = Q46, y = prison_rate, label = B_COUNTRY_ALPHA)) +
 ```
 
 ## Question 195 Graph
+
 0.048
 
 ```{r}
@@ -360,9 +360,7 @@ ggplot(aes(x = Q195, y = prison_rate, label = B_COUNTRY_ALPHA)) +
   scale_x_reverse("Death Penalty Justification", limits = c(10, 1), breaks = c(1, 10), label = c("Never justifiable", "Always justifiable"))
 ```
 
-
-# Q234A	IGNORE -- NOT STATISTICALLY SIGNIFICANT
-
+# Q234A IGNORE -- NOT STATISTICALLY SIGNIFICANT
 
 p value 0.055652007
 
@@ -370,7 +368,6 @@ p value 0.055652007
 q234A_data <- countries_for_analysis %>% filter(B_COUNTRY_ALPHA != "THA", B_COUNTRY_ALPHA != "USA")
 summary(lm(as.formula("prison_rate~Q234A"), data=q234A_data))
 ```
-
 
 ```{r}
 countries_for_analysis %>% 
@@ -385,10 +382,11 @@ ggplot(aes(x = Q234A, y = prison_rate, label = B_COUNTRY_ALPHA)) +
        caption = "P-Value of 0.056") +
   scale_x_reverse("Death Penalty Justification", limits = c(10, 1), breaks = c(1, 10), label = c("Never justifiable", "Always justifiable"))
 ```
+
 IGNORE -- NOT STATISTICALLY SIGNIFICANT
 
-
 ## Question 58 graph
+
 ```{r}
 countries_for_analysis %>% 
   select(B_COUNTRY_ALPHA, prison_rate, Q58) %>% 
@@ -415,8 +413,7 @@ ggplot(aes(x = Q58, y = prison_rate, label = B_COUNTRY_ALPHA)) +
   scale_x_reverse("Trust in Your Family", breaks = c(1, 2, 3, 4), label = c("Trust completely", "Trust somewhat", "Do not trust very much", "Do not trust at all"))
 ```
 
-
-# Q203	
+# Q203
 
 p value 0.060173361
 
@@ -434,11 +431,9 @@ ggplot(aes(x = Q203, y = prison_rate, label = B_COUNTRY_ALPHA)) +
   scale_x_reverse("Radio News Usage", limits = c(5, 1), breaks = c(1, 2, 3, 4, 5), label = c("Daily", "Weekly", "Monthly", "Less than monthly", "Never"))
 ```
 
+# Q142
 
-
-# Q142	
-
-p value 0.061714572			
+p value 0.061714572
 
 ```{r}
 countries_for_analysis %>% 
@@ -454,9 +449,9 @@ ggplot(aes(x = Q142, y = prison_rate, label = B_COUNTRY_ALPHA)) +
   scale_x_reverse("Job Security", limits = c(4, 1), breaks = c(1, 2, 3, 4), label = c("Very much", "A good deal", "Not much", "Not at all"))
 ```
 
-#Q2	
+#Q2
 
-p value 0.088545211	
+p value 0.088545211
 
 ```{r}
 countries_for_analysis %>% 
@@ -472,8 +467,8 @@ ggplot(aes(x = Q2, y = prison_rate, label = B_COUNTRY_ALPHA)) +
   scale_x_reverse("Importance of Friends", limits = c(4, 1), breaks = c(1, 2, 3, 4), label = c("Very important", "Rather important", "Not very important", "Not at all important"))
 ```
 
-
 ## Function to make graph
+
 ```{r}
 make_graph <- function(question_num, x_label, title_phrase, subtitle, p_value, limits, breaks, break_labels, y_label = "Incarceration Rate (per 100,000)"){
   countries_for_analysis %>%
@@ -513,12 +508,10 @@ make_graph(question_num="Q46", x_label = "Q46", limits = c(1,4), breaks = c(1, 2
 
 ```
 
-
-
 # References
 
-Haerpfer, Christian, Ronald Inglehart, Alejandro Moreno, Christian Welzel, Kseniya Kizilova, Jaime Diez-Medrano, Marta Lagos, Pippa Norris, Eduard Ponarin, and Bi Puranen. 2022. “World Values Survey Wave 7 (2017-2022) Cross-National Data-Set.” *World Values Survey*. Retrieved March 26, 2023 (https://www.worldvaluessurvey.org/WVSDocumentationWV7.jsp).
+Haerpfer, Christian, Ronald Inglehart, Alejandro Moreno, Christian Welzel, Kseniya Kizilova, Jaime Diez-Medrano, Marta Lagos, Pippa Norris, Eduard Ponarin, and Bi Puranen. 2022. "World Values Survey Wave 7 (2017-2022) Cross-National Data-Set." *World Values Survey*. Retrieved March 26, 2023 (https://www.worldvaluessurvey.org/WVSDocumentationWV7.jsp).
 
-Ingelhart, Ronald, Christian W. Haerpfer, Alejandro Moreno, Christian Welzel, Kseniya Kizilova, Jaime Diez-Medrano, Marta Lagos, Pippa Norris, Eduard Ponarin, and Bi Puranen. 2014. “World Values Survey Wave 6 (2010-2014).” *World Values Survey.* Retrieved March 26, 2023 (https://www.worldvaluessurvey.org/WVSDocumentationWV5.jsp).
+Ingelhart, Ronald, Christian W. Haerpfer, Alejandro Moreno, Christian Welzel, Kseniya Kizilova, Jaime Diez-Medrano, Marta Lagos, Pippa Norris, Eduard Ponarin, and Bi Puranen. 2014. "World Values Survey Wave 6 (2010-2014)." *World Values Survey.* Retrieved March 26, 2023 (https://www.worldvaluessurvey.org/WVSDocumentationWV5.jsp).
 
-Ingelhart, Ronald, Christian W. Haerpfer, Alejandro Moreno, Christian Welzel, Kseniya Kizilova, Jaime Diez-Medrano, Marta Lagos, Pippa Norris, Eduard Ponarin, and Bi Puranen. 2014. “World Values Survey Wave 5 (2005-2009).” *World Values Survey.* Retrieved March 26, 2023 (https://www.worldvaluessurvey.org/WVSDocumentationWV6.jsp).
+Ingelhart, Ronald, Christian W. Haerpfer, Alejandro Moreno, Christian Welzel, Kseniya Kizilova, Jaime Diez-Medrano, Marta Lagos, Pippa Norris, Eduard Ponarin, and Bi Puranen. 2014. "World Values Survey Wave 5 (2005-2009)." *World Values Survey.* Retrieved March 26, 2023 (https://www.worldvaluessurvey.org/WVSDocumentationWV6.jsp).
